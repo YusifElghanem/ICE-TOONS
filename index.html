@@ -234,7 +234,7 @@
 
     <footer>
         <div>ICE TOONS &copy; 2024 - عالم الكرتون المجاني</div>
-        <div class="version-tag">Version 1.0.4 (Stable) ❄️</div>
+        <div class="version-tag">Version 1.0.5 (Stable) ❄️</div>
     </footer>
 
     <div id="player-container">
@@ -244,7 +244,6 @@
 
     <script>
         const BASE_URL = 'https://www.dimakids.com/';
-        // تم وضع الرابط الصحيح هنا مع ?url= لضمان العمل
         const PROXY = 'https://script.google.com/macros/s/AKfycbz-tAbbdUeeF6LXwWwZF3fJ6DjGtQKOxLad3d51UDzU4FigyHIXdExBLEUho6e6HRzq/exec?url='; 
         
         let currentView = 'series';
@@ -262,7 +261,13 @@
         async function fetchPage(url) {
             const fullUrl = url.startsWith('http') ? url : BASE_URL + url;
             try {
-                const response = await fetch(PROXY + encodeURIComponent(fullUrl));
+                const response = await fetch(PROXY + encodeURIComponent(fullUrl), {
+                    mode: 'cors',
+                    cache: 'no-cache',
+                    headers: {
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+                    }
+                });
                 if (!response.ok) throw new Error('Network response was not ok');
                 return await response.text();
             } catch (e) {
@@ -299,7 +304,10 @@
             contentArea.innerHTML = '<div class="loading">جاري التحميل... ❄️</div>';
             const url = page === 1 ? 'cartoon.php' : `cartoon.php?page=${page}`;
             const html = await fetchPage(url);
-            if (!html) return;
+            if (!html) {
+                contentArea.innerHTML = '<div class="loading">حدث خطأ أثناء التحميل، يرجى تحديث الصفحة. ❄️</div>';
+                return;
+            }
             const doc = parseHTML(html);
             const items = extractItems(doc, BASE_URL);
             renderGrid(items, 'series');
@@ -310,7 +318,10 @@
             contentArea.innerHTML = '<div class="loading">جاري التحميل... ❄️</div>';
             const url = page === 1 ? 'movies.php' : `movies.php?page=${page}`;
             const html = await fetchPage(url);
-            if (!html) return;
+            if (!html) {
+                contentArea.innerHTML = '<div class="loading">حدث خطأ أثناء التحميل، يرجى تحديث الصفحة. ❄️</div>';
+                return;
+            }
             const doc = parseHTML(html);
             const items = extractItems(doc, BASE_URL);
             renderGrid(items, 'movies');
@@ -323,7 +334,7 @@
                 {l: "ث", u: "3-tri.html"}, {l: "ج", u: "4-tri.html"}, {l: "ح", u: "5-tri.html"}, {l: "خ", u: "6-tri.html"},
                 {l: "د", u: "7-tri.html"}, {l: "ذ", u: "8-tri.html"}, {l: "ر", u: "9-tri.html"}, {l: "ز", u: "10-tri.html"},
                 {l: "س", u: "11-tri.html"}, {l: "ش", u: "12-tri.html"}, {l: "ص", u: "13-tri.html"}, {l: "ض", u: "14-tri.html"},
-                {l: "ط", u: "15-tri.html"}, {l: "ع", u: "16-tri.//html"}, {l: "غ", u: "17-tri.html"}, {l: "ف", u: "18-tri.html"},
+                {l: "ط", u: "15-tri.html"}, {l: "ع", u: "16-tri.html"}, {l: "غ", u: "17-tri.html"}, {l: "ف", u: "18-tri.html"},
                 {l: "ق", u: "19-tri.html"}, {l: "ك", u: "20-tri.html"}, {l: "ل", u: "21-tri.html"}, {l: "م", u: "22-tri.html"},
                 {l: "ن", u: "23-tri.html"}, {l: "ه", u: "24-tri.html"}, {l: "و", u: "25-tri.html"}, {l: "ي", u: "26-tri.html"}
             ];
@@ -344,7 +355,10 @@
         async function loadByLetter(url) {
             contentArea.innerHTML = '<div class="loading">جاري التحميل... ❄️</div>';
             const html = await fetchPage(url);
-            if (!html) return;
+            if (!html) {
+                contentArea.innerHTML = '<div class="loading">حدث خطأ أثناء التحميل، يرجى تحديث الصفحة. ❄️</div>';
+                return;
+            }
             const doc = parseHTML(html);
             const items = extractItems(doc, BASE_URL);
             renderGrid(items, 'series');
@@ -356,7 +370,10 @@
             contentArea.innerHTML = '<div class="loading">جاري البحث... ❄️</div>';
             const url = `search_results.php?q=${encodeURIComponent(q)}`;
             const html = await fetchPage(url);
-            if (!html) return;
+            if (!html) {
+                contentArea.innerHTML = '<div class="loading">حدث خطأ أثناء البحث، يرجى تحديث الصفحة. ❄️</div>';
+                return;
+            }
             const doc = parseHTML(html);
             const items = extractItems(doc, BASE_URL);
             renderGrid(items, 'mixed');
@@ -405,7 +422,10 @@
         async function loadEpisodes(url) {
             contentArea.innerHTML = '<div class="loading">جاري تحميل الحلقات... ❄️</div>';
             const html = await fetchPage(url);
-            if (!html) return;
+            if (!html) {
+                contentArea.innerHTML = '<div class="loading">حدث خطأ أثناء تحميل الحلقات، يرجى تحديث الصفحة. ❄️</div>';
+                return;
+            }
             const doc = parseHTML(html);
             const grid = doc.querySelector('.episodes-grid');
             if (!grid) {
@@ -426,7 +446,11 @@
         async function playVideoFromPage(url) {
             contentArea.innerHTML = '<div class="loading">جاري استخراج رابط التشغيل... ❄️</div>';
             const html = await fetchPage(url);
-            if (!html) return;
+            if (!html) {
+                contentArea.innerHTML = '<div class="loading">حدث خطأ في جلب صفحة الفيديو، يرجى تحديث الصفحة. ❄️</div>';
+                return;
+            }
+
             const mp4Regex = new RegExp('(https?://[^\\s\'"]+\\.mp4[^\\s\'"]*)');
             const srcRegex = new RegExp('const\\s+videoSrc\\s*=\\s*["\'](.*?)["\']');
             const mp4Match = html.match(mp4Regex);
