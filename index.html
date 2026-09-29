@@ -192,20 +192,6 @@
             color: var(--accent);
             margin: 50px 0;
         }
-        .pagination {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            margin: 30px 0;
-        }
-        .pagination button {
-            background: var(--bg-card);
-            border: 2px solid var(--accent);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 10px;
-            cursor: pointer;
-        }
     </style>
 </head>
 <body>
@@ -237,7 +223,6 @@
     <script>
         // --- الإعدادات ---
         const BASE_URL = 'https://www.dimakids.com/';
-        // استخدام بروكسي مجاني لتجاوز الـ CORS
         const PROXY = 'https://api.allorigins.win/get?url='; 
         
         let currentView = 'series';
@@ -252,30 +237,27 @@
         const mainVideo = document.getElementById('main-video');
         const closePlayer = document.getElementById('close-player');
 
-        // --- وظيفة الجلب عبر البروكسي ---
         async function fetchPage(url) {
             const fullUrl = url.startsWith('http') ? url : BASE_URL + url;
             try {
                 const response = await fetch(PROXY + encodeURIComponent(fullUrl));
                 const data = await response.json();
-                return data.contents; // AllOrigins يرجع المحتوى داخل contents
+                return data.contents;
             } catch (e) {
                 console.error('Error fetching page:', e);
                 return null;
             }
         }
 
-        // دالة مساعدة لتحويل HTML إلى DOM لسهولة البحث
         function parseHTML(html) {
             const parser = new DOMParser();
             return parser.parseFromString(html, 'text/html');
         }
 
-        // --- وظائف استخراج البيانات (Client-side Scraping) ---
         function extractItems(doc, fullUrl) {
             const items = [];
-            const grid = doc.querySelector('.series-grid-swiper') || doc.querySelector('.search-results-container') || doc.querySelectorAll('a[href*=".html"]');
-            const links = grid.querySelectorAll ? grid.querySelectorAll('a[href]') : Array.from(grid);
+            const grid = doc.querySelector('.series-grid-swiper') || doc.querySelector('.search-results-container');
+            const links = grid ? grid.querySelectorAll('a[href]') : doc.querySelectorAll('a[href*=".html"]');
 
             links.forEach(item => {
                 const title = item.getAttribute('title') || item.innerText.trim();
@@ -299,7 +281,6 @@
             const url = page === 1 ? 'cartoon.php' : `cartoon.php?page=${page}`;
             const html = await fetchPage(url);
             if (!html) return;
-            
             const doc = parseHTML(html);
             const items = extractItems(doc, BASE_URL);
             renderGrid(items, 'series');
@@ -311,7 +292,6 @@
             const url = page === 1 ? 'movies.php' : `movies.php?page=${page}`;
             const html = await fetchPage(url);
             if (!html) return;
-
             const doc = parseHTML(html);
             const items = extractItems(doc, BASE_URL);
             renderGrid(items, 'movies');
@@ -328,7 +308,6 @@
                 {l: "ق", u: "19-tri.html"}, {l: "ك", u: "20-tri.html"}, {l: "ل", u: "21-tri.html"}, {l: "م", u: "22-tri.html"},
                 {l: "ن", u: "23-tri.html"}, {l: "ه", u: "24-tri.html"}, {l: "و", u: "25-tri.html"}, {l: "ي", u: "26-tri.html"}
             ];
-
             const grid = document.createElement('div');
             grid.className = 'letter-grid';
             letters.forEach(item => {
@@ -366,7 +345,6 @@
 
         async function startRandomChannel() {
             contentArea.innerHTML = '<div class="loading">جاري اختيار كرتون عشوائي... ❄️</div>';
-            // محاكاة القناة العشوائية بفتح صفحة المسلسلات واختيار عشوائي
             const html = await fetchPage('cartoon.php');
             if (!html) return;
             const doc = parseHTML(html);
@@ -431,9 +409,12 @@
             const html = await fetchPage(url);
             if (!html) return;
 
-            // محاكاة RegEx استخراج الرابط
-            const mp4Match = html.match(/(https?://[^\s'"]+\.mp4[^\s'"]*)/);
-            const srcMatch = html.match(/const\s+videoSrc\s*=\s*["'](.*?)["']/);
+            // الإصلاح النهائي للـ Regular Expressions
+            const mp4Regex = new RegExp('(https?://[^\\s\'"]+\\.mp4[^\\s\'"]*)');
+            const srcRegex = new RegExp('const\\s+videoSrc\\s*=\\s*["\'](.*?)["\']');
+            
+            const mp4Match = html.match(mp4Regex);
+            const srcMatch = html.match(srcRegex);
             
             let streamUrl = mp4Match ? mp4Match[1] : (srcMatch ? srcMatch[1] : null);
             
@@ -451,7 +432,6 @@
             mainVideo.play();
         }
 
-        // --- التحكم والـ TV Navigation ---
         navBtns.forEach(btn => {
             btn.onclick = () => {
                 navBtns.forEach(b => b.classList.remove('active'));
