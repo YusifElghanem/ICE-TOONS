@@ -234,7 +234,7 @@
 
     <footer>
         <div>ICE TOONS &copy; 2024 - عالم الكرتون المجاني</div>
-        <div class="version-tag">Version 1.0.3 (Stable) ❄️</div>
+        <div class="version-tag">Version 1.0.2 (Stable) ❄️</div>
     </footer>
 
     <div id="player-container">
@@ -243,9 +243,9 @@
     </div>
 
     <script>
-        // --- الإعدادات ---
         const BASE_URL = 'https://www.dimakids.com/';
-        const PROXY = 'https://script.google.com/macros/s/AKfycbz-tAbbdUeeF6LXwWwZF3fJ6DjGtQKOxLad3d51UDzU4FigyHIXdExBLEUho6e6HRzq/exec'; 
+        // تم وضع الرابط الصحيح هنا مع ?url= لضمان العمل
+        const PROXY = 'https://script.google.com/macros/s/AKfycbz-tAbbdUeeF6LXwWwZF3fJ6DjGtQKOxLad3d51UDzU4FigyHIXdExBLEUho6e6HRzq/exec?url='; 
         
         let currentView = 'series';
         let currentPage = 1;
@@ -285,13 +285,10 @@
                 const title = item.getAttribute('title') || item.innerText.trim();
                 const href = item.getAttribute('href');
                 if (!href || href.includes('javascript') || href === '#') return;
-                
                 const link = href.startsWith('http') ? href : (fullUrl.endsWith('/') ? fullUrl + href : fullUrl + '/' + href);
                 const img = item.querySelector('img');
                 let thumb = img ? img.getAttribute('src') : '';
-                if (thumb && !thumb.startsWith('http')) {
-                    thumb = BASE_URL + thumb;
-                }
+                if (thumb && !thumb.startsWith('http')) thumb = BASE_URL + thumb;
                 if (title) items.push({ title, link, thumb });
             });
             return items;
@@ -326,7 +323,7 @@
                 {l: "ث", u: "3-tri.html"}, {l: "ج", u: "4-tri.html"}, {l: "ح", u: "5-tri.html"}, {l: "خ", u: "6-tri.html"},
                 {l: "د", u: "7-tri.html"}, {l: "ذ", u: "8-tri.html"}, {l: "ر", u: "9-tri.html"}, {l: "ز", u: "10-tri.html"},
                 {l: "س", u: "11-tri.html"}, {l: "ش", u: "12-tri.html"}, {l: "ص", u: "13-tri.html"}, {l: "ض", u: "14-tri.html"},
-                {l: "ط", u: "15-tri.html"}, {l: "ع", u: "16-tri.html"}, {l: "غ", u: "17-tri.html"}, {l: "ف", u: "18-tri.html"},
+                {l: "ط", u: "15-tri.html"}, {l: "ع", u: "16-tri.//html"}, {l: "غ", u: "17-tri.html"}, {l: "ف", u: "18-tri.html"},
                 {l: "ق", u: "19-tri.html"}, {l: "ك", u: "20-tri.html"}, {l: "ل", u: "21-tri.html"}, {l: "م", u: "22-tri.html"},
                 {l: "ن", u: "23-tri.html"}, {l: "ه", u: "24-tri.html"}, {l: "و", u: "25-tri.html"}, {l: "ي", u: "26-tri.html"}
             ];
@@ -430,15 +427,11 @@
             contentArea.innerHTML = '<div class="loading">جاري استخراج رابط التشغيل... ❄️</div>';
             const html = await fetchPage(url);
             if (!html) return;
-
             const mp4Regex = new RegExp('(https?://[^\\s\'"]+\\.mp4[^\\s\'"]*)');
             const srcRegex = new RegExp('const\\s+videoSrc\\s*=\\s*["\'](.*?)["\']');
-            
             const mp4Match = html.match(mp4Regex);
             const srcMatch = html.match(srcRegex);
-            
             let streamUrl = mp4Match ? mp4Match[1] : (srcMatch ? srcMatch[1] : null);
-            
             if (streamUrl) {
                 playVideo(streamUrl);
             } else {
