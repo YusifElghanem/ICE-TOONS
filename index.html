@@ -226,9 +226,7 @@
             <button id="search-btn">بحث</button>
         </div>
 
-        <div id="content-area">
-            <!-- Content will be injected here -->
-        </div>
+        <div id="content-area"></div>
     </div>
 
     <div id="player-container">
@@ -238,11 +236,12 @@
 
     <script>
         // --- الإعدادات ---
-        const API_BASE = 'https://your-render-app-url.onrender.com'; // استبدل هذا برابط سيرفر Render الخاص بك
+        const BASE_URL = 'https://www.dimakids.com/';
+        // استخدام بروكسي مجاني لتجاوز الـ CORS
+        const PROXY = 'https://api.allorigins.win/get?url='; 
         
         let currentView = 'series';
         let currentPage = 1;
-        let currentLetterUrl = '';
 
         const contentArea = document.getElementById('content-area');
         const logo = document.getElementById('app-logo');
@@ -253,51 +252,90 @@
         const mainVideo = document.getElementById('main-video');
         const closePlayer = document.getElementById('close-player');
 
-        // --- وظائف الجلب ---
-        async function fetchData(endpoint, params = {}) {
-            const query = new URLSearchParams(params).toString();
-            const url = `${API_BASE}${endpoint}${query ? '?' + query : ''}`;
+        // --- وظيفة الجلب عبر البروكسي ---
+        async function fetchPage(url) {
+            const fullUrl = url.startsWith('http') ? url : BASE_URL + url;
             try {
-                const response = await fetch(url);
-                return await response.json();
+                const response = await fetch(PROXY + encodeURIComponent(fullUrl));
+                const data = await response.json();
+                return data.contents; // AllOrigins يرجع المحتوى داخل contents
             } catch (e) {
-                console.error('Fetch error:', e);
+                console.error('Error fetching page:', e);
                 return null;
             }
+        }
+
+        // دالة مساعدة لتحويل HTML إلى DOM لسهولة البحث
+        function parseHTML(html) {
+            const parser = new DOMParser();
+            return parser.parseFromString(html, 'text/html');
+        }
+
+        // --- وظائف استخراج البيانات (Client-side Scraping) ---
+        function extractItems(doc, fullUrl) {
+            const items = [];
+            const grid = doc.querySelector('.series-grid-swiper') || doc.querySelector('.search-results-container') || doc.querySelectorAll('a[href*=".html"]');
+            const links = grid.querySelectorAll ? grid.querySelectorAll('a[href]') : Array.from(grid);
+
+            links.forEach(item => {
+                const title = item.getAttribute('title') || item.innerText.trim();
+                const href = item.getAttribute('href');
+                if (!href || href.includes('javascript') || href === '#') return;
+                
+                const link = href.startsWith('http') ? href : (fullUrl.endsWith('/') ? fullUrl + href : fullUrl + '/' + href);
+                const img = item.querySelector('img');
+                let thumb = img ? img.getAttribute('src') : '';
+                if (thumb && !thumb.startsWith('http')) {
+                    thumb = BASE_URL + thumb;
+                }
+                if (title) items.push({ title, link, thumb });
+            });
+            return items;
         }
 
         async function loadSeries(page = 1) {
             currentPage = page;
             contentArea.innerHTML = '<div class="loading">جاري التحميل... ❄️</div>';
-            const data = await fetchData('/api/series', { page });
-            if (!data || !data.items) return;
-
-            renderGrid(data.items, 'series');
-            renderPagination(data.next_page, data.current_page);
+            const url = page === 1 ? 'cartoon.php' : `cartoon.php?page=${page}`;
+            const html = await fetchPage(url);
+            if (!html) return;
+            
+            const doc = parseHTML(html);
+            const items = extractItems(doc, BASE_URL);
+            renderGrid(items, 'series');
         }
 
         async function loadMovies(page = 1) {
             currentPage = page;
             contentArea.innerHTML = '<div class="loading">جاري التحميل... ❄️</div>';
-            const data = await fetchData('/api/movies', { page });
-            if (!data || !data.items) return;
+            const url = page === 1 ? 'movies.php' : `movies.php?page=${page}`;
+            const html = await fetchPage(url);
+            if (!html) return;
 
-            renderGrid(data.items, 'movies');
-            renderPagination(data.next_page, data.current_page);
+            const doc = parseHTML(html);
+            const items = extractItems(doc, BASE_URL);
+            renderGrid(items, 'movies');
         }
 
         async function loadLetters() {
             contentArea.innerHTML = '<div class="loading">جاري التحميل... ❄️</div>';
-            const data = await fetchData('/api/letters');
-            if (!data) return;
+            const letters = [
+                {l: "الكل", u: "all-tri.html"}, {l: "ا", u: "0-tri.html"}, {l: "ب", u: "1-tri.html"}, {l: "ت", u: "2-tri.html"},
+                {l: "ث", u: "3-tri.html"}, {l: "ج", u: "4-tri.html"}, {l: "ح", u: "5-tri.html"}, {l: "خ", u: "6-tri.html"},
+                {l: "د", u: "7-tri.html"}, {l: "ذ", u: "8-tri.html"}, {l: "ر", u: "9-tri.html"}, {l: "ز", u: "10-tri.html"},
+                {l: "س", u: "11-tri.html"}, {l: "ش", u: "12-tri.html"}, {l: "ص", u: "13-tri.html"}, {l: "ض", u: "14-tri.html"},
+                {l: "ط", u: "15-tri.html"}, {l: "ع", u: "16-tri.html"}, {l: "غ", u: "17-tri.html"}, {l: "ف", u: "18-tri.html"},
+                {l: "ق", u: "19-tri.html"}, {l: "ك", u: "20-tri.html"}, {l: "ل", u: "21-tri.html"}, {l: "م", u: "22-tri.html"},
+                {l: "ن", u: "23-tri.html"}, {l: "ه", u: "24-tri.html"}, {l: "و", u: "25-tri.html"}, {l: "ي", u: "26-tri.html"}
+            ];
 
             const grid = document.createElement('div');
             grid.className = 'letter-grid';
-            data.forEach(l => {
+            letters.forEach(item => {
                 const btn = document.createElement('button');
                 btn.className = 'letter-btn';
-                btn.innerText = l.label;
-                btn.onclick = () => loadByLetter(l.url);
+                btn.innerText = item.l;
+                btn.onclick = () => loadByLetter(item.u);
                 btn.tabIndex = 0;
                 grid.appendChild(btn);
             });
@@ -307,39 +345,42 @@
 
         async function loadByLetter(url) {
             contentArea.innerHTML = '<div class="loading">جاري التحميل... ❄️</div>';
-            // نستخدم endpoint المسلسلات لكن نمرر url مخصص (هنا نحتاج تعديل بسيط في backend أو التعامل مع الـ url)
-            // في هذا المثال الـ Backend يتوقع cartoon.php
-            // سنقوم بتعديل الـ Backend ليدعم الـ url المباشر في api/series
-            const data = await fetchData('/api/series', { url: url }); 
-            // ملاحظة: إذا كان الـ Backend لا يدعم ?url= في /api/series، يمكن إنشاء endpoint جديد
-            if (!data || !data.items) return;
-            renderGrid(data.items, 'series');
+            const html = await fetchPage(url);
+            if (!html) return;
+            const doc = parseHTML(html);
+            const items = extractItems(doc, BASE_URL);
+            renderGrid(items, 'series');
         }
 
         async function search() {
             const q = searchInput.value.trim();
             if (!q) return;
             contentArea.innerHTML = '<div class="loading">جاري البحث... ❄️</div>';
-            const data = await fetchData('/api/search', { q });
-            if (!data || !data.items) return;
-            renderGrid(data.items, 'mixed');
+            const url = `search_results.php?q=${encodeURIComponent(q)}`;
+            const html = await fetchPage(url);
+            if (!html) return;
+            const doc = parseHTML(html);
+            const items = extractItems(doc, BASE_URL);
+            renderGrid(items, 'mixed');
         }
 
         async function startRandomChannel() {
-            contentArea.innerHTML = '<div class="loading">جاري البحث عن كرتون عشوائي... ❄️</div>';
-            const data = await fetchData('/api/random');
-            if (data && data.stream_url) {
-                playVideo(data.stream_url, data.referer);
-            } else {
-                alert('عذراً، لم يتم العثور على فيديو عشوائي حالياً');
+            contentArea.innerHTML = '<div class="loading">جاري اختيار كرتون عشوائي... ❄️</div>';
+            // محاكاة القناة العشوائية بفتح صفحة المسلسلات واختيار عشوائي
+            const html = await fetchPage('cartoon.php');
+            if (!html) return;
+            const doc = parseHTML(html);
+            const items = extractItems(doc, BASE_URL);
+            if (items.length > 0) {
+                const randomItem = items[Math.floor(Math.random() * items.length)];
+                handleCardClick(randomItem, 'series');
             }
         }
 
-        // --- وظائف العرض ---
         function renderGrid(items, type) {
             const grid = document.createElement('div');
             grid.className = 'grid';
-            items.forEach((item, index) => {
+            items.forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.tabIndex = 0;
@@ -353,73 +394,64 @@
             });
             contentArea.innerHTML = '';
             contentArea.appendChild(grid);
-            
-            // Focus first item for TV navigation
-            const firstCard = grid.querySelector('.card');
-            if (firstCard) firstCard.focus();
-        }
-
-        function renderPagination(nextUrl, current) {
-            if (!nextUrl) return;
-            const pag = document.createElement('div');
-            pag.className = 'pagination';
-            const btn = document.createElement('button');
-            btn.innerText = `الصفحة التالية (${current + 1})`;
-            btn.onclick = () => {
-                currentPage++;
-                if (currentView === 'series') loadSeries(currentPage);
-                else loadMovies(currentPage);
-            };
-            btn.tabIndex = 0;
-            pag.appendChild(btn);
-            contentArea.appendChild(pag);
-        }
-
-        async function handleCardClick(item, type) {
-            if (type === 'movies' || type === 'mixed' && item.type === 'movie') {
-                const playData = await fetchData('/api/play', { url: item.link });
-                if (playData && playData.stream_url) {
-                    playVideo(playData.stream_url, playData.referer);
-                }
-            } else {
-                const epData = await fetchData('/api/episodes', { url: item.link });
-                if (epData && epData.items) {
-                    renderEpisodes(epData.items);
-                }
-            }
-        }
-
-        function renderEpisodes(items) {
-            const grid = document.createElement('div');
-            grid.className = 'grid';
-            items.forEach(ep => {
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.tabIndex = 0;
-                card.innerHTML = `
-                    <img src="${ep.thumb || 'https://via.placeholder.com}'}" alt="${ep.title}">
-                    <div class="card-title">${ep.title}</div>
-                `;
-                card.onclick = () => {
-                    fetchData('/api/play', { url: ep.link }).then(data => {
-                        if (data && data.stream_url) playVideo(data.stream_url, data.referer);
-                    });
-                };
-                card.onkeydown = (e) => { if(e.key === 'Enter') handleCardClick(ep, 'movies'); };
-                grid.appendChild(card);
-            });
-            contentArea.innerHTML = '';
-            contentArea.appendChild(grid);
             grid.querySelector('.card')?.focus();
         }
 
-        function playVideo(url, referer) {
+        async function handleCardClick(item, type) {
+            if (type === 'movies' || type === 'mixed') {
+                playVideoFromPage(item.link);
+            } else {
+                loadEpisodes(item.link);
+            }
+        }
+
+        async function loadEpisodes(url) {
+            contentArea.innerHTML = '<div class="loading">جاري تحميل الحلقات... ❄️</div>';
+            const html = await fetchPage(url);
+            if (!html) return;
+            const doc = parseHTML(html);
+            const grid = doc.querySelector('.episodes-grid');
+            if (!grid) {
+                playVideoFromPage(url);
+                return;
+            }
+            const episodes = [];
+            grid.querySelectorAll('a[href]').forEach(ep => {
+                episodes.push({
+                    title: ep.getAttribute('title') || ep.innerText.trim() || "حلقة",
+                    link: ep.getAttribute('href').startsWith('http') ? ep.getAttribute('href') : (url.endsWith('/') ? url + ep.getAttribute('href') : url + '/' + ep.getAttribute('href')),
+                    thumb: ep.querySelector('img') ? ep.querySelector('img').getAttribute('src') : ''
+                });
+            });
+            renderGrid(episodes, 'movies');
+        }
+
+        async function playVideoFromPage(url) {
+            contentArea.innerHTML = '<div class="loading">جاري استخراج رابط التشغيل... ❄️</div>';
+            const html = await fetchPage(url);
+            if (!html) return;
+
+            // محاكاة RegEx استخراج الرابط
+            const mp4Match = html.match(/(https?://[^\s'"]+\.mp4[^\s'"]*)/);
+            const srcMatch = html.match(/const\s+videoSrc\s*=\s*["'](.*?)["']/);
+            
+            let streamUrl = mp4Match ? mp4Match[1] : (srcMatch ? srcMatch[1] : null);
+            
+            if (streamUrl) {
+                playVideo(streamUrl);
+            } else {
+                alert('عذراً، تعذر العثور على رابط الفيديو المباشر لهذه الصفحة.');
+                loadSeries();
+            }
+        }
+
+        function playVideo(url) {
             mainVideo.src = url;
             playerContainer.style.display = 'flex';
             mainVideo.play();
         }
 
-        // --- التحكم ---
+        // --- التحكم والـ TV Navigation ---
         navBtns.forEach(btn => {
             btn.onclick = () => {
                 navBtns.forEach(b => b.classList.remove('active'));
@@ -432,10 +464,7 @@
             };
         });
 
-        logo.onclick = () => {
-            navBtns[0].click();
-        };
-
+        logo.onclick = () => navBtns[0].click();
         searchBtn.onclick = search;
         closePlayer.onclick = () => {
             playerContainer.style.display = 'none';
@@ -443,44 +472,29 @@
             mainVideo.src = '';
         };
 
-        // --- TV Navigation ---
         window.addEventListener('keydown', (e) => {
             const active = document.activeElement;
-            if (!active || active === body) return;
-
+            if (!active || active === document.body) return;
             if (e.key === 'ArrowRight') moveFocus('prev');
             if (e.key === 'ArrowLeft') moveFocus('next');
             if (e.key === 'ArrowUp') moveFocus('up');
             if (e.key === 'ArrowDown') moveFocus('down');
             if (e.key === 'Backspace') {
-                if (playerContainer.style.display === 'flex') {
-                    closePlayer.click();
-                } else {
-                    // Simple back logic: return to main view if in episodes or letters
-                    if (currentView === 'letters') loadSeries();
-                    else loadSeries();
-                }
+                if (playerContainer.style.display === 'flex') closePlayer.click();
+                else loadSeries();
             }
         });
 
         function moveFocus(dir) {
             const focusables = Array.from(document.querySelectorAll('[tabindex="0"]'));
             const idx = focusables.indexOf(document.activeElement);
-            if (idx === -1) {
-                focusables[0]?.focus();
-                return;
-            }
+            if (idx === -1) { focusables[0]?.focus(); return; }
             if (dir === 'next') focusables[idx + 1]?.focus();
             if (dir === 'prev') focusables[idx - 1]?.focus();
-            if (dir === 'up' || dir === 'down') {
-                // Simple grid focus movement
-                const rows = 6; 
-                if (dir === 'down') focusables[idx + rows]?.focus();
-                if (dir === 'up') focusables[idx - rows]?.focus();
-            }
+            if (dir === 'down') focusables[idx + 6]?.focus();
+            if (dir === 'up') focusables[idx - 6]?.focus();
         }
 
-        // Initial load
         loadSeries();
     </script>
 </body>
