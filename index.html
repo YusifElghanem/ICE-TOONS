@@ -20,6 +20,9 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
         header {
             background: linear-gradient(to bottom, #1a2a4a, transparent);
@@ -65,6 +68,7 @@
             padding: 20px;
             max-width: 1400px;
             margin: 0 auto;
+            flex: 1;
         }
         .grid {
             display: grid;
@@ -192,6 +196,19 @@
             color: var(--accent);
             margin: 50px 0;
         }
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            background: rgba(0,0,0,0.3);
+            border-top: 1px solid rgba(0, 210, 255, 0.1);
+        }
+        .version-tag {
+            color: var(--accent);
+            font-weight: bold;
+            opacity: 0.7;
+        }
     </style>
 </head>
 <body>
@@ -215,6 +232,11 @@
         <div id="content-area"></div>
     </div>
 
+    <footer>
+        <div>ICE TOONS &copy; 2024 - عالم الكرتون المجاني</div>
+        <div class="version-tag">Version 1.0.2 (Stable) ❄️</div>
+    </footer>
+
     <div id="player-container">
         <button class="close-player" id="close-player">إغلاق ✖</button>
         <video id="main-video" controls autoplay></video>
@@ -223,7 +245,7 @@
     <script>
         // --- الإعدادات ---
         const BASE_URL = 'https://www.dimakids.com/';
-        const PROXY = 'https://api.allorigins.win/get?url='; 
+        const PROXY = 'https://corsproxy.io/?'; 
         
         let currentView = 'series';
         let currentPage = 1;
@@ -241,8 +263,8 @@
             const fullUrl = url.startsWith('http') ? url : BASE_URL + url;
             try {
                 const response = await fetch(PROXY + encodeURIComponent(fullUrl));
-                const data = await response.json();
-                return data.contents;
+                if (!response.ok) throw new Error('Network response was not ok');
+                return await response.text();
             } catch (e) {
                 console.error('Error fetching page:', e);
                 return null;
@@ -409,7 +431,6 @@
             const html = await fetchPage(url);
             if (!html) return;
 
-            // الإصلاح النهائي للـ Regular Expressions
             const mp4Regex = new RegExp('(https?://[^\\s\'"]+\\.mp4[^\\s\'"]*)');
             const srcRegex = new RegExp('const\\s+videoSrc\\s*=\\s*["\'](.*?)["\']');
             
